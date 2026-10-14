@@ -26,3 +26,5 @@ public class HealthTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }
+
+using Xunit;
