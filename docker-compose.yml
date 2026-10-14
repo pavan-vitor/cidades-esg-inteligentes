@@ -1,0 +1,40 @@
+services:
+  api-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cidades-esg-staging
+    environment:
+      ASPNETCORE_ENVIRONMENT: Staging
+      DATA_DIR: /app/data
+    ports:
+      - "${STAGING_PORT:-8081}:8080"
+    volumes:
+      - staging_data:/app/data
+    networks:
+      - esg-network
+    restart: unless-stopped
+
+  api-production:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cidades-esg-production
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DATA_DIR: /app/data
+    ports:
+      - "${PRODUCTION_PORT:-8080}:8080"
+    volumes:
+      - production_data:/app/data
+    networks:
+      - esg-network
+    restart: unless-stopped
+
+volumes:
+  staging_data:
+  production_data:
+
+networks:
+  esg-network:
+    driver: bridge

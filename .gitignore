@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+.idea/
+.env
+TestResults/
+*.user
+*.suo
+docs/evidencias/*.png
+!docs/evidencias/LEIA-ME.txt

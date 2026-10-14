@@ -1,0 +1,92 @@
+name: CI-CD Cidades ESG Inteligentes
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cidades-esg-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restaurar dependencias
+        run: dotnet restore CidadesESG.sln
+
+      - name: Build
+        run: dotnet build CidadesESG.sln --configuration Release --no-restore
+
+      - name: Testes automatizados
+        run: dotnet test CidadesESG.sln --configuration Release --no-build --verbosity normal
+
+      - name: Validar imagem Docker
+        run: docker build -t cidades-esg:${{ github.sha }} .
+
+  staging:
+    name: Deploy - Staging
+    needs: build-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build e deploy de staging
+        run: docker compose up -d --build api-staging
+
+      - name: Smoke test staging
+        run: |
+          for i in {1..12}; do
+            if curl --fail --silent http://localhost:8081/health; then exit 0; fi
+            sleep 5
+          done
+          docker compose logs api-staging
+          exit 1
+
+      - name: Evidencia dos containers
+        if: always()
+        run: docker compose ps
+
+  production:
+    name: Deploy - Production
+    needs: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build e deploy de producao
+        run: docker compose up -d --build api-production
+
+      - name: Smoke test producao
+        run: |
+          for i in {1..12}; do
+            if curl --fail --silent http://localhost:8080/health; then exit 0; fi
+            sleep 5
+          done
+          docker compose logs api-production
+          exit 1
+
+      - name: Evidencia dos containers
+        if: always()
+        run: docker compose ps

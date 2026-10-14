@@ -1,0 +1,12 @@
+INSIRA AQUI OS PRINTS REAIS DA EXECUÇÃO.
+
+Sugestão de nomes:
+01-github-actions-build-test.png
+02-github-actions-staging.png
+03-github-actions-production.png
+04-docker-compose-ps.png
+05-staging-health.png
+06-production-health.png
+07-swagger-indicadores.png
+
+Os prints não foram fabricados: devem ser capturados após você executar o projeto/workflow.
