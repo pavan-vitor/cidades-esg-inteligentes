@@ -1,5 +1,5 @@
-using Json.Schema;
-using System.Text.Json.Nodes;
+ using Json.Schema;
+using System.Text.Json;
 using Xunit;
 
 namespace CidadesESG.Tests.Infrastructure;
@@ -11,8 +11,9 @@ public static class JsonSchemaAssertions
         var schemaPath = Path.Combine(AppContext.BaseDirectory, "Schemas", schemaFile);
         var schemaText = File.ReadAllText(schemaPath);
         var schema = JsonSchema.FromText(schemaText);
-        var instance = JsonNode.Parse(json);
-        Assert.NotNull(instance);
+
+        using var document = JsonDocument.Parse(json);
+        var instance = document.RootElement;
 
         var result = schema.Evaluate(instance, new EvaluationOptions
         {
