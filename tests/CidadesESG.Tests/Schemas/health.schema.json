@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Health check",
+  "type": "object",
+  "required": ["status", "environment", "timestamp"],
+  "properties": {
+    "status": { "type": "string", "const": "healthy" },
+    "environment": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

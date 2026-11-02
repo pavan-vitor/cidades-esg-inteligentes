@@ -13,8 +13,15 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Reqnroll.xUnit" Version="3.3.4" />
+    <PackageReference Include="JsonSchema.Net" Version="9.4.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\CidadesESG.Api\CidadesESG.Api.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Schemas\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

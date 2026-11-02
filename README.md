@@ -1,187 +1,127 @@
-# Projeto - Cidades ESG Inteligentes
+# Cidades ESG Inteligentes - Testes Automatizados BDD
 
-**Integrante:** Vitor Pavan  
-**Stack principal:** C# / .NET 8 / ASP.NET Core Web API  
-**Tema:** ESG, cidades inteligentes e monitoramento de indicadores sustentáveis.
+Projeto academico em C# / .NET 8 que implementa uma API REST para indicadores ESG de cidades inteligentes. Esta versao evolui o projeto anterior com testes automatizados de API, BDD em Gherkin e testes de contrato com JSON Schema.
 
-## Visão geral
+## Objetivo ESG
 
-O projeto **Cidades ESG Inteligentes** disponibiliza uma API REST para registrar e consultar indicadores ambientais e urbanos, como consumo de energia, reciclagem e áreas verdes. A entrega foi adaptada para um fluxo DevOps, com build, testes, containerização e implantação automatizada em ambientes de staging e produção.
+A API registra indicadores de sustentabilidade urbana (por exemplo energia renovavel e reciclagem). A automacao de testes contribui para governanca e compliance ao validar integridade, rastreabilidade, comportamento esperado e contrato das respostas da API.
 
-Endpoints principais:
+## Stack
 
-- `GET /health` - health check da aplicação.
-- `GET /api/indicadores` - lista indicadores ESG.
-- `GET /api/indicadores/{id}` - consulta um indicador.
-- `POST /api/indicadores` - cria um indicador.
-- `PUT /api/indicadores/{id}` - atualiza um indicador.
-- `DELETE /api/indicadores/{id}` - remove um indicador.
-- `/swagger` - documentação interativa da API.
+- .NET 8 / ASP.NET Core Web API
+- Entity Framework Core + SQLite
+- xUnit + WebApplicationFactory
+- Reqnroll (BDD compativel com Gherkin/Cucumber para .NET)
+- JsonSchema.Net para testes de contrato JSON Schema
+- Docker / Docker Compose
+- GitHub Actions (CI/CD)
 
-## Como executar localmente com Docker
+## APIs cobertas
 
-### Pré-requisitos
+| Metodo | Endpoint | Validacoes automatizadas |
+|---|---|---|
+| GET | `/health` | 200, JSON, JSON Schema |
+| GET | `/api/indicadores` | 200, lista JSON, JSON Schema |
+| GET | `/api/indicadores/{id}` | 200/404, JSON, JSON Schema |
+| POST | `/api/indicadores` | 201/400, corpo JSON, JSON Schema |
+| PUT | `/api/indicadores/{id}` | 204/404 e persistencia da alteracao |
+| DELETE | `/api/indicadores/{id}` | 204/404 e confirmacao da exclusao |
 
-- Docker Desktop com Docker Compose.
-- Opcionalmente, .NET SDK 8 para execução sem Docker.
+## Cenarios BDD
 
-### Subindo staging e produção
+O arquivo `tests/CidadesESG.Tests/Features/Indicadores.feature` contem cinco cenarios executaveis:
 
-1. Copie `.env.example` para `.env`.
-2. No terminal, na raiz do projeto, execute:
+1. cadastro valido (caminho feliz);
+2. cadastro invalido (cenario negativo);
+3. consulta de indicador existente;
+4. consulta de indicador inexistente (404);
+5. atualizacao e remocao do indicador.
+
+Os steps estao em `tests/CidadesESG.Tests/StepDefinitions/IndicadoresSteps.cs`.
+
+## JSON Schema
+
+Os contratos ficam em `tests/CidadesESG.Tests/Schemas/`:
+
+- `health.schema.json`
+- `indicador.schema.json`
+- `indicadores-list.schema.json`
+
+Os testes carregam os arquivos de schema e validam as respostas reais usando JsonSchema.Net.
+
+## Pre-requisitos
+
+- .NET SDK 8.x
+- Git
+- Docker Desktop (opcional para executar a aplicacao em container)
+
+## Executar os testes localmente
+
+Na raiz do projeto:
 
 ```bash
-docker compose up --build -d
+dotnet restore CidadesESG.sln
+dotnet build CidadesESG.sln --configuration Release
+dotnet test CidadesESG.sln --configuration Release --logger "console;verbosity=normal"
 ```
 
-3. Valide os ambientes:
-
-- Staging: `http://localhost:8081/health`
-- Produção: `http://localhost:8080/health`
-- Swagger staging: `http://localhost:8081/swagger`
-- Swagger produção: `http://localhost:8080/swagger`
-
-4. Para visualizar os containers:
+Para gerar um arquivo TRX como evidencia:
 
 ```bash
-docker compose ps
+mkdir -p TestResults
+dotnet test CidadesESG.sln --configuration Release --logger "trx;LogFileName=resultados.trx" --results-directory TestResults
 ```
 
-5. Para encerrar:
+## Executar a API localmente
+
+```bash
+dotnet run --project src/CidadesESG.Api/CidadesESG.Api.csproj
+```
+
+Acesse o Swagger no endereco informado pelo terminal, acrescentando `/swagger`.
+
+## Executar com Docker
+
+```bash
+docker compose up -d --build api-staging
+```
+
+Health check de staging: `http://localhost:8081/health`.
+
+Para encerrar:
 
 ```bash
 docker compose down
 ```
 
-Para remover também os volumes:
+## CI/CD
 
-```bash
-docker compose down -v
+O workflow `.github/workflows/ci-cd.yml` executa automaticamente restore, build, todos os testes xUnit/BDD, gera resultado TRX, valida a imagem Docker e, em push para `main`, executa os ambientes de staging e production com smoke test em `/health`.
+
+## Evidencias recomendadas para a entrega
+
+1. terminal com `dotnet test` e todos os testes aprovados;
+2. GitHub Actions com o job `Build e testes` verde;
+3. detalhe do passo `Testes automatizados`;
+4. arquivo `.feature` aberto mostrando os cenarios Gherkin;
+5. pasta `Schemas` mostrando os contratos JSON Schema.
+
+## Estrutura principal
+
+```text
+src/CidadesESG.Api/
+tests/CidadesESG.Tests/
+  ApiTests/
+  Features/
+  Infrastructure/
+  Schemas/
+  StepDefinitions/
+.github/workflows/ci-cd.yml
+Dockerfile
+docker-compose.yml
+README.md
 ```
 
-## Pipeline CI/CD
+## Autor
 
-Foi utilizado **GitHub Actions**, configurado em `.github/workflows/ci-cd.yml`.
-
-O fluxo possui três jobs:
-
-1. **Build e testes**
-   - checkout do repositório;
-   - configuração do .NET 8;
-   - `dotnet restore`;
-   - `dotnet build`;
-   - `dotnet test`;
-   - validação do build da imagem Docker.
-
-2. **Deploy - Staging**
-   - executado após o sucesso de build/testes em push para `main`;
-   - build do serviço `api-staging`;
-   - inicialização do container;
-   - smoke test em `/health`;
-   - registro do estado dos containers.
-
-3. **Deploy - Production**
-   - depende do sucesso de staging;
-   - utiliza o Environment `production` do GitHub;
-   - build e inicialização do serviço de produção;
-   - smoke test em `/health`.
-
-> Para uma demonstração acadêmica reproduzível, staging e produção são ambientes containerizados separados, isolados por porta, variável de ambiente e volume. No GitHub Actions, esses deploys são efêmeros no runner e servem como validação automatizada. Em produção real, os mesmos jobs podem apontar para Azure App Service, Azure Container Apps, Kubernetes ou servidor remoto persistente.
-
-## Containerização
-
-O `Dockerfile` usa **multi-stage build**:
-
-```dockerfile
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY ["src/CidadesESG.Api/CidadesESG.Api.csproj", "src/CidadesESG.Api/"]
-RUN dotnet restore "src/CidadesESG.Api/CidadesESG.Api.csproj"
-COPY . .
-WORKDIR "/src/src/CidadesESG.Api"
-RUN dotnet publish "CidadesESG.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
-WORKDIR /app
-COPY --from=build /app/publish .
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
-ENTRYPOINT ["dotnet", "CidadesESG.Api.dll"]
-```
-
-A estratégia reduz a imagem final porque o SDK fica somente na etapa de compilação e a execução utiliza a imagem ASP.NET Runtime.
-
-### Docker Compose
-
-O `docker-compose.yml` utiliza:
-
-- dois serviços: staging e produção;
-- variáveis de ambiente;
-- volumes nomeados para persistência do banco SQLite;
-- rede bridge própria `esg-network`;
-- portas distintas;
-- política `restart: unless-stopped`.
-
-## Prints do funcionamento
-
-Inclua nesta seção, antes da entrega, as evidências reais geradas durante a execução:
-
-1. GitHub Actions - job **Build e testes** verde.
-2. GitHub Actions - job **Deploy - Staging** verde.
-3. GitHub Actions - job **Deploy - Production** verde.
-4. `docker compose ps` mostrando os containers.
-5. Navegador em `http://localhost:8081/health`.
-6. Navegador em `http://localhost:8080/health`.
-7. Swagger exibindo `GET /api/indicadores`.
-
-Salve os arquivos em `docs/evidencias/`.
-
-## Tecnologias utilizadas
-
-- C#;
-- .NET 8;
-- ASP.NET Core Web API;
-- Entity Framework Core + SQLite;
-- xUnit;
-- Swagger / OpenAPI;
-- Docker;
-- Docker Compose;
-- GitHub Actions;
-- Git / GitHub.
-
-## Testes
-
-Execução local:
-
-```bash
-dotnet restore CidadesESG.sln
-dotnet build CidadesESG.sln -c Release
-dotnet test CidadesESG.sln -c Release
-```
-
-Os testes automatizados validam o endpoint de health check e a consulta de indicadores.
-
-## Desafios encontrados e soluções
-
-**Padronização entre ambientes:** staging e produção precisam executar o mesmo artefato com configurações diferentes. A solução foi utilizar variáveis de ambiente e portas distintas no Docker Compose.
-
-**Reprodutibilidade:** para reduzir diferenças entre máquinas, o Dockerfile empacota as dependências e o runtime necessários. O SQLite fica persistido em volume Docker separado por ambiente.
-
-**Qualidade antes do deploy:** o pipeline impede o avanço para staging caso build ou testes falhem. Produção depende do sucesso do job de staging.
-
-**Evidências:** o endpoint `/health`, os smoke tests e `docker compose ps` facilitam a comprovação do funcionamento.
-
-## Checklist de entrega
-
-| Item | OK |
-|---|:---:|
-| Projeto compactado em .ZIP com estrutura organizada | ☑ |
-| Dockerfile funcional | ☑ |
-| docker-compose.yml ou arquivos Kubernetes | ☑ |
-| Pipeline com etapas de build, teste e deploy | ☑ |
-| README.md com instruções | ☑ |
-| Documentação técnica em PDF/PPT | ☑ |
-| Deploy configurado para staging e produção | ☑ |
-| Prints reais de execução anexados antes da entrega | ☐ |
-
-> **Atenção:** o último item deve ser marcado somente depois de executar o projeto e o workflow e inserir prints reais. Não entregue evidências simuladas como se fossem execuções reais.
+Vitor Pavan
